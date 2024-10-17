@@ -1,0 +1,12 @@
+---
+- name: Copy all job files to Bareos job directory
+  ansible.builtin.copy:
+    src: "files/"
+    dest: "/etc/bareos/bareos-dir.d/job/"
+    owner: bareos
+    group: bareos
+    mode: '0640'
+    force: true  # Overwrite if files already exist
+  register: copy_result  # Register the result of the copy task
+  when: jobs_enabled
+  notify: Restart Bareos Director

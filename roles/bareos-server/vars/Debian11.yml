@@ -1,0 +1,7 @@
+---
+bareos_os_version: Debian_11
+bareos_db_package: postgresql-13
+bareos_support_packages:
+  - gpg
+  - gpgv2
+php_version: "php8.2-fpm"

@@ -1,0 +1,161 @@
+---
+- name: Include OS-specific variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution }}.yml"
+
+- name: Install dependencies
+  ansible.builtin.apt:
+    name: "{{ _bareos_support_packages }}"
+  when: _bareos_support_packages is defined
+
+- name: Ensure wget is installed
+  ansible.builtin.apt:
+    name: wget
+    state: present
+    update_cache: true
+
+- name: Install support packages (GPG)
+  ansible.builtin.apt:
+    name: "{{ bareos_support_packages }}"
+    state: present
+
+- name: Download Bareos repository script
+  ansible.builtin.get_url:
+    url: "https://download.bareos.org/current/{{ bareos_os_version }}/add_bareos_repositories.sh"
+    dest: /tmp/add_bareos_repositories.sh
+    mode: '0755'
+
+- name: Check if Bareos sources file exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/bareos.sources
+  register: bareos_sources
+
+- name: Run Bareos repository script
+  ansible.builtin.command: "/tmp/add_bareos_repositories.sh"
+  when: not bareos_sources.stat.exists
+  register: repository_script_output
+  changed_when: repository_script_output.rc == 0 and "'added' in repository_script_output.stdout"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name: "{{ bareos_db_package }}"
+    state: present
+
+- name: Install Bareos server and Web UI
+  ansible.builtin.apt:
+    name:
+      - bareos
+      - bareos-webui
+    state: present
+
+- name: Enable Apache modules for PHP-FPM
+  ansible.builtin.command: "a2enmod proxy_fcgi setenvif"
+  register: enable_mods
+  changed_when: "'Module proxy_fcgi already enabled' not in enable_mods.stdout and 'Module setenvif already enabled' not in enable_mods.stdout"
+  notify: Reload Apache
+
+- name: Enable Apache configuration for PHP-FPM
+  ansible.builtin.command: "a2enconf {{ php_version }}"
+  register: enable_conf
+  changed_when: "'already enabled' not in enable_conf.stdout"
+  notify: Reload Apache
+
+- name: Setup bareos DB
+  when: bareos_setup_db
+  block:
+    - name: Check that bareos DB exists
+      ansible.builtin.shell: "su - postgres -c 'psql -lqt | grep -w bareos'"
+      register: _bareos_db_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Run DB setup scripts
+      ansible.builtin.shell: >
+        su - postgres -c "/usr/lib/bareos/scripts/create_bareos_database &&
+                          /usr/lib/bareos/scripts/make_bareos_tables &&
+                          /usr/lib/bareos/scripts/grant_bareos_privileges"
+      when: _bareos_db_exists.rc != 0  # This condition checks if the DB does not exist
+      changed_when: true  # Mark this task as changed if it runs
+
+- name: Ensure Bareos Web UI admin console configuration exists
+  ansible.builtin.template:
+    src: admin.conf.j2
+    dest: /etc/bareos/bareos-dir.d/console/admin.conf
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director
+
+- name: Update Bareos Storage Address
+  ansible.builtin.lineinfile:
+    path: /etc/bareos/bareos-dir.d/storage/File.conf
+    regexp: '^(  Address =).*'  # Matches the Address line
+    line: "  Address = {{ hostvars[groups['bareos-server'][0]].ansible_host }}"  # Use the ansible_host variable of the first host in the group
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify:
+    - Restart Bareos Storage Daemon
+    - Restart Bareos File Daemon
+    - Restart Bareos Director
+
+- name: Register Bareos clients using bconsole
+  ansible.builtin.shell: |
+    bconsole -c /etc/bareos/bconsole.conf <<EOF
+    {% for client in bareos_clients %}
+    configure add client name={{ item.name }} address={{ item.address }} password={{ item.password }}
+    {% endfor %}
+    EOF
+  loop: "{{ bareos_clients }}"
+  register: bconsole_output
+  ignore_errors: true  # Ignore errors if the client already exists
+  when: register_clients_enabled
+  changed_when: "'added' in bconsole_output.stdout"
+
+- name: Fetch the generated client config file to the local machine
+  ansible.builtin.fetch:
+    src: "/etc/bareos/bareos-dir-export/client/{{ item.name }}/bareos-fd.d/director/bareos-dir.conf"
+    dest: "./buffer/{{ item.name }}_bareos-dir.conf"  # Save with client name for clarity
+    flat: true
+  loop: "{{ bareos_clients }}"
+  when: register_clients_enabled
+
+- name: Copy the fetched config file to the correct client address
+  ansible.builtin.copy:
+    src: "./buffer/{{ item.name }}_bareos-dir.conf"  # Use the client-specific filename
+    dest: "/etc/bareos/bareos-fd.d/director/bareos-dir.conf"  # Destination for the generic configuration
+    owner: bareos
+    group: bareos
+    mode: '0640'
+    force: true
+  loop: "{{ bareos_clients }}"
+  when: register_clients_enabled
+  delegate_to: "{{ item.address }}"  # Use the client's address for delegation
+  notify: Restart Bareos File Daemon
+
+- name: Copy Telegram message configuration when Telegram is enabled
+  ansible.builtin.template:
+    src: "telegram.conf.j2"
+    dest: "/etc/bareos/bareos-dir.d/messages/Telegram.conf"
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  when: telegram_enabled
+  notify: Restart Bareos Director
+
+- name: Update Messages to Telegram in DefaultJob
+  ansible.builtin.lineinfile:
+    path: /etc/bareos/bareos-dir.d/jobdefs/DefaultJob.conf
+    regexp: '^(  Messages =).*'  # Matches the Messages line
+    line: "  Messages = Telegram"  # Update to Telegram
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director
+  when: telegram_enabled

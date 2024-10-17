@@ -1,0 +1,6 @@
+Console {
+  Name = "admin"
+  Password = "{{ webui_admin_password }}"
+  Profile = "webui-admin"
+  TlsEnable = {{ webui_tls_enable | default(false) }}
+}

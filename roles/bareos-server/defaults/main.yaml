@@ -1,0 +1,24 @@
+---
+bareos_setup_db: true
+
+## WebUI vars
+webui_admin_password: "password"
+webui_tls_enable: false
+
+## Clients vars
+register_clients_enabled: false
+bareos_clients:
+  - name: "client1-fd"
+    address: "192.168.0.2"
+    password: "password_for_client1"  # Specify password for client1
+  - name: "client2-fd"
+    address: "192.168.0.3"
+    password: "password_for_client2"  # Specify password for client2
+
+## Telegram vars for sending logs to telegram
+telegram_enabled: false
+bot_token: "<bot_token>"  # Replace with your bot token
+chat_id: "<chat_id>"  # Replace with your chat ID
+
+## Job vars
+jobs_enabled: false

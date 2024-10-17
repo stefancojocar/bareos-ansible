@@ -1,0 +1,5 @@
+---
+- name: Restart Bareos Director
+  ansible.builtin.service:
+    name: bareos-dir
+    state: restarted

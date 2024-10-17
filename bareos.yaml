@@ -1,0 +1,13 @@
+---
+- name: Install and Configure Bareos Client
+  hosts: bareos-client
+  become: true
+  roles:
+    - bareos-client
+
+- name: Install and Configure Bareos Server
+  hosts: bareos-server
+  become: true
+  roles:
+    - bareos-server
+    - bareos-jobs

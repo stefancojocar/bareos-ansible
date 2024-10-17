@@ -1,0 +1,11 @@
+Messages {
+  Name = Telegram
+  Description = "Reasonable message delivery -- send most everything to Telegram channel and to the console."
+  operatorcommand = "/usr/bin/bsmtp -h localhost -f \"\(Bareos\) \<%r\>\" -s \"Bareos: Intervention needed for %j\" %r{{ bot_token }}"
+  mailcommand = "curl --header 'Content-Type: application/json' --request 'POST' --data '{\"chat_id\":\"{{ chat_id }}\",\"text\":\"Status of %t is %e of job-name: %n \(Level=%l\) \"}' \"https://api.telegram.org/bot{{ bot_token }}/sendMessage\""
+  operator = root@localhost = mount                                 # (#03)
+  mail = root@localhost = all, !skipped, !saved, !audit             # (#02)
+  console = all, !skipped, !saved, !audit
+  append = "/var/log/bareos/bareos.log" = all, !skipped, !saved, !audit
+  catalog = all, !skipped, !saved, !audit
+}

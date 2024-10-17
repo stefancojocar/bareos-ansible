@@ -1,0 +1,48 @@
+---
+- name: Include OS-specific variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution }}.yml"
+
+- name: Install dependencies
+  ansible.builtin.apt:
+    name: "{{ _bareos_support_packages }}"
+  when: _bareos_support_packages is defined
+
+- name: Ensure wget is installed
+  ansible.builtin.apt:
+    name: wget
+    state: present
+    update_cache: true
+
+- name: Install support packages (GPG)
+  ansible.builtin.apt:
+    name: "{{ bareos_support_packages }}"
+    state: present
+
+- name: Download Bareos repository script
+  ansible.builtin.get_url:
+    url: "https://download.bareos.org/current/{{ bareos_os_version }}/add_bareos_repositories.sh"
+    dest: /tmp/add_bareos_repositories.sh
+    mode: '0755'
+
+- name: Check if Bareos sources file exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/bareos.sources
+  register: bareos_sources
+
+- name: Run Bareos repository script
+  ansible.builtin.command: "/tmp/add_bareos_repositories.sh"
+  when: not bareos_sources.stat.exists
+  register: repository_script_output  # Register the output for later use
+  changed_when: repository_script_output.rc == 0 and "'added' in repository_script_output.stdout"  # Adjust based on the actual output
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Bareos client
+  ansible.builtin.apt:
+    name: bareos-client
+    state: present
