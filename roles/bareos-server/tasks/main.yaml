@@ -110,5 +110,5 @@
   when: register_clients_enabled
 
 - name: Configure telegram notifications
-  ansible.builtin.import_tasks: telegram-notifications.yaml
+  ansible.builtin.import_tasks: telegram_notifications.yaml
   when: telegram_enabled
