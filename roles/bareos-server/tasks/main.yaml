@@ -105,57 +105,10 @@
     - Restart Bareos File Daemon
     - Restart Bareos Director
 
-- name: Register Bareos clients using bconsole
-  ansible.builtin.shell: |
-    bconsole -c /etc/bareos/bconsole.conf <<EOF
-    {% for client in bareos_clients %}
-    configure add client name={{ item.name }} address={{ item.address }} password={{ item.password }}
-    {% endfor %}
-    EOF
-  loop: "{{ bareos_clients }}"
-  register: bconsole_output
-  ignore_errors: true  # Ignore errors if the client already exists
-  when: register_clients_enabled
-  changed_when: "'added' in bconsole_output.stdout"
-
-- name: Fetch the generated client config file to the local machine
-  ansible.builtin.fetch:
-    src: "/etc/bareos/bareos-dir-export/client/{{ item.name }}/bareos-fd.d/director/bareos-dir.conf"
-    dest: "./buffer/{{ item.name }}_bareos-dir.conf"  # Save with client name for clarity
-    flat: true
-  loop: "{{ bareos_clients }}"
+- name: Register clients
+  ansible.builtin.import_tasks: register_clients.yaml
   when: register_clients_enabled
 
-- name: Copy the fetched config file to the correct client address
-  ansible.builtin.copy:
-    src: "./buffer/{{ item.name }}_bareos-dir.conf"  # Use the client-specific filename
-    dest: "/etc/bareos/bareos-fd.d/director/bareos-dir.conf"  # Destination for the generic configuration
-    owner: bareos
-    group: bareos
-    mode: '0640'
-    force: true
-  loop: "{{ bareos_clients }}"
-  when: register_clients_enabled
-  delegate_to: "{{ item.address }}"  # Use the client's address for delegation
-  notify: Restart Bareos File Daemon
-
-- name: Copy Telegram message configuration when Telegram is enabled
-  ansible.builtin.template:
-    src: "telegram.conf.j2"
-    dest: "/etc/bareos/bareos-dir.d/messages/Telegram.conf"
-    owner: bareos
-    group: bareos
-    mode: '0640'
-  when: telegram_enabled
-  notify: Restart Bareos Director
-
-- name: Update Messages to Telegram in DefaultJob
-  ansible.builtin.lineinfile:
-    path: /etc/bareos/bareos-dir.d/jobdefs/DefaultJob.conf
-    regexp: '^(  Messages =).*'  # Matches the Messages line
-    line: "  Messages = Telegram"  # Update to Telegram
-    owner: bareos
-    group: bareos
-    mode: '0640'
-  notify: Restart Bareos Director
+- name: Configure telegram notifications
+  ansible.builtin.import_tasks: telegram-notifications.yaml
   when: telegram_enabled

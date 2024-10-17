@@ -1,0 +1,19 @@
+---
+- name: Copy Telegram message configuration when Telegram is enabled
+  ansible.builtin.template:
+    src: "telegram.conf.j2"
+    dest: "/etc/bareos/bareos-dir.d/messages/Telegram.conf"
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director
+
+- name: Update Messages to Telegram in DefaultJob
+  ansible.builtin.lineinfile:
+    path: /etc/bareos/bareos-dir.d/jobdefs/DefaultJob.conf
+    regexp: '^(  Messages =).*'  # Matches the Messages line
+    line: "  Messages = Telegram"  # Update to Telegram
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director

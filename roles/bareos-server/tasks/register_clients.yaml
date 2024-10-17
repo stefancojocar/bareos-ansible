@@ -1,0 +1,31 @@
+---
+- name: Register Bareos clients using bconsole
+  ansible.builtin.shell: |
+    bconsole -c /etc/bareos/bconsole.conf <<EOF
+    {% for client in bareos_clients %}
+    configure add client name={{ item.name }} address={{ item.address }} password={{ item.password }}
+    {% endfor %}
+    EOF
+  loop: "{{ bareos_clients }}"
+  register: bconsole_output
+  ignore_errors: true  # Ignore errors if the client already exists
+  changed_when: "'added' in bconsole_output.stdout"
+
+- name: Fetch the generated client config file to the local machine
+  ansible.builtin.fetch:
+    src: "/etc/bareos/bareos-dir-export/client/{{ item.name }}/bareos-fd.d/director/bareos-dir.conf"
+    dest: "./buffer/{{ item.name }}_bareos-dir.conf"  # Save with client name for clarity
+    flat: true
+  loop: "{{ bareos_clients }}"
+
+- name: Copy the fetched config file to the correct client address
+  ansible.builtin.copy:
+    src: "./buffer/{{ item.name }}_bareos-dir.conf"  # Use the client-specific filename
+    dest: "/etc/bareos/bareos-fd.d/director/bareos-dir.conf"  # Destination for the generic configuration
+    owner: bareos
+    group: bareos
+    mode: '0640'
+    force: true
+  loop: "{{ bareos_clients }}"
+  delegate_to: "{{ item.address }}"  # Use the client's address for delegation
+  notify: Restart Bareos File Daemon
