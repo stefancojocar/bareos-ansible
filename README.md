@@ -2,8 +2,7 @@
 
 Role to setup Bareos server, bareos clients, bareos jobs and telegram messages.
 
-# Variables
-## Server
+## Server Variables
 
 - `bareos_setup_db` - Check if postgresql DB `bareos` exists. If not, create and fill with data (`false`)
 - `webui_admin_password` - Creates `password` for webui
