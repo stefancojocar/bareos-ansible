@@ -28,4 +28,4 @@
     force: true
   loop: "{{ bareos_clients }}"
   delegate_to: "{{ item.address }}"  # Use the client's address for delegation
-  notify: Restart Bareos File Daemon
+

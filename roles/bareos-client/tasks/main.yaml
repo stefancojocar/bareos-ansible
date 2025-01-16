@@ -16,11 +16,6 @@
     state: present
     update_cache: true
 
-- name: Install support packages (GPG)
-  ansible.builtin.apt:
-    name: "{{ bareos_support_packages }}"
-    state: present
-
 - name: Download Bareos repository script
   ansible.builtin.get_url:
     url: "https://download.bareos.org/current/{{ bareos_os_version }}/add_bareos_repositories.sh"

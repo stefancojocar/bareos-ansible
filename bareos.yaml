@@ -11,3 +11,12 @@
   roles:
     - bareos-server
     - bareos-jobs
+
+- name: Restart Bareos FD on bareos-client group
+  become: true
+  hosts: bareos-client
+  tasks:
+    - name: Restart Bareos FD on the client
+      ansible.builtin.systemd:
+        name: bareos-fd
+        state: restarted

@@ -1,25 +1,40 @@
 ---
 - name: Reload Apache
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: apache2
     state: reloaded
 
 - name: Restart Apache
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: apache2
     state: restarted
 
-- name: Restart Bareos Director
-  ansible.builtin.service:
+- name: Restart Bareos Dir
+  ansible.builtin.systemd:
     name: bareos-dir
     state: restarted
 
+- name: Restart Bareos Storage
+  ansible.builtin.systemd:
+    name: bareos-storage
+    state: restarted
+
 - name: Restart Bareos Storage Daemon
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: bareos-sd
     state: restarted
 
 - name: Restart Bareos File Daemon
-  ansible.builtin.service:
+  ansible.builtin.systemd:
+    name: bareos-filedaemon
+    state: restarted
+
+- name: Restart Bareos FD
+  ansible.builtin.systemd:
     name: bareos-fd
+    state: restarted
+
+- name: Restart Bareos Director
+  ansible.builtin.systemd:
+    name: bareos-director
     state: restarted

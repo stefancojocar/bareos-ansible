@@ -16,9 +16,14 @@ bareos_clients:
     password: "password_for_client2"  # Specify password for client2
 
 ## Telegram vars for sending logs to telegram
-telegram_enabled: false
+telegram_enabled: false # if true teams have to be enabled: false
 bot_token: "<bot_token>"  # Replace with your bot token
 chat_id: "<chat_id>"  # Replace with your chat ID
+
+## Teamsvars for sending logs to teams
+teams_enabled: false # if true tealegram have to be enabled: false
+teams_webhook_url: <teams_webhook_url> # add teams webhook url
+bareos_web_url : "http://ip/bareos-webui"
 
 ## Job vars
 jobs_enabled: false

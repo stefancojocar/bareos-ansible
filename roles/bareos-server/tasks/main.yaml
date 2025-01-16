@@ -100,10 +100,20 @@
     owner: bareos
     group: bareos
     mode: '0640'
-  notify:
-    - Restart Bareos Storage Daemon
-    - Restart Bareos File Daemon
-    - Restart Bareos Director
+
+- name: Restart multiple services
+  become: true  # Run as root
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - apache2
+    - bareos-dir
+    - bareos-storage
+    - bareos-sd
+    - bareos-filedaemon
+    - bareos-fd
+    - bareos-director
 
 - name: Register clients
   ansible.builtin.import_tasks: register_clients.yaml
@@ -112,3 +122,8 @@
 - name: Configure telegram notifications
   ansible.builtin.import_tasks: telegram_notifications.yaml
   when: telegram_enabled
+
+- name: Configure teams notifications
+  ansible.builtin.import_tasks: teams_notifications.yaml
+  when: teams_enabled
+

@@ -12,6 +12,9 @@ Role to setup Bareos server, bareos clients, bareos jobs and telegram messages.
 - `bot_token` - Telegram bot token
 - `chat_id` - Telegram chat id
 - `jobs_enabled` - Copy bareos jobs from folder files to bareos server (created manual)
+- `teams_webhook_url` - Teams webhook url
+- `bareos_web_url` - bareos url for generating link to jobs in teams
+
 
 ```
 bareos_clients:

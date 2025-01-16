@@ -1,0 +1,19 @@
+---
+- name: Copy Teams message configuration when Teams is enabled
+  ansible.builtin.template:
+    src: "teams.conf.j2"
+    dest: "/etc/bareos/bareos-dir.d/messages/Teams.conf"
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director
+
+- name: Update Messages to Teams in DefaultJob
+  ansible.builtin.lineinfile:
+    path: /etc/bareos/bareos-dir.d/jobdefs/DefaultJob.conf
+    regexp: '^(  Messages =).*'  # Matches the Messages line
+    line: "  Messages = Teams"  # Update to Teams
+    owner: bareos
+    group: bareos
+    mode: '0640'
+  notify: Restart Bareos Director

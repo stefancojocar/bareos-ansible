@@ -1,0 +1,16 @@
+Messages {
+  Name = Teams
+  Description = "Send Bareos notifications to Microsoft Teams channel."
+
+  # Command to send messages to Teams
+  mailcommand = "curl --header 'Content-Type: application/json' \
+    --request 'POST' \
+    --data '{\"@type\": \"MessageCard\", \"@context\": \"http://schema.org/extensions\", \"summary\": \"Bareos Notification\", \"themeColor\": \"0076D7\", \"sections\": [{\"activityTitle\": \"Bareos Notification\", \"facts\": [{\"name\": \"Job Name:\", \"value\": \"%n\"}, {\"name\": \"Status:\", \"value\": \"%e\"}, {\"name\": \"Level:\", \"value\": \"%l\"}, {\"name\": \"Job Type:\", \"value\": \"%t\"}], \"markdown\": true, \"potentialAction\": [{\"@type\": \"OpenUri\", \"name\": \"View Job Details\", \"targets\": [{\"os\": \"default\", \"uri\": \"{{ bareos_web_url }}/job/details/%i\"}]}]}]}' \
+    \"{{ teams_webhook_url }}\""
+
+  operator = root@localhost = mount
+  mail = root@localhost = all, !skipped, !saved, !audit
+  console = all, !skipped, !saved, !audit
+  append = "/var/log/bareos/bareos.log" = all, !skipped, !saved, !audit
+  catalog = all, !skipped, !saved, !audit
+}
